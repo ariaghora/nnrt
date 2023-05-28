@@ -180,7 +180,6 @@ inline void nnrt_argmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out) {
                 if (a->data[i * n + j] > max_val) {
                     max_val = a->data[i * n + j];
                     max_idx = j;
-                    (void)(max_idx);
                 }
             }
             out->data[i] = max_idx;
