@@ -226,6 +226,81 @@ inline void nnrt_softmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out) {
     }
 }
 
+inline void nnrt_image_hwc_to_chw(nnrt_Tensor *a, nnrt_Tensor *out) {
+    size_t batch_size = a->shape[0];
+    size_t height = a->shape[1];
+    size_t width = a->shape[2];
+    size_t channels = a->shape[3];
+
+    for (size_t b = 0; b < batch_size; ++b) {
+        for (size_t c = 0; c < channels; ++c) {
+            for (size_t i = 0; i < height; ++i) {
+                for (size_t j = 0; j < width; ++j) {
+                    size_t in_idx = (b * height * width * channels) + (i * width * channels) + (j * channels) + c;
+                    size_t out_idx = (b * channels * height * width) + (c * height * width) + (i * width) + j;
+                    out->data[out_idx] = a->data[in_idx];
+                }
+            }
+        }
+    }
+}
+
+inline void nnrt_image_chw_to_hwc(nnrt_Tensor *a, nnrt_Tensor *out) {
+    size_t batch_size = a->shape[0];
+    size_t channels = a->shape[1];
+    size_t height = a->shape[2];
+    size_t width = a->shape[3];
+
+    for (size_t b = 0; b < batch_size; ++b) {
+        for (size_t i = 0; i < height; ++i) {
+            for (size_t j = 0; j < width; ++j) {
+                for (size_t c = 0; c < channels; ++c) {
+                    size_t in_idx = (b * channels * height * width) + (c * height * width) + (i * width) + j;
+                    size_t out_idx = (b * height * width * channels) + (i * width * channels) + (j * channels) + c;
+                    out->data[out_idx] = a->data[in_idx];
+                }
+            }
+        }
+    }
+}
+
+inline void nnrt_image_standardize(nnrt_Tensor *a, float *mean, float *stddev, nnrt_Tensor *out) {
+    size_t batch_size = a->shape[0], num_channels = a->shape[1], height = a->shape[2], width = a->shape[3];
+    size_t spatial_dim = height * width;
+
+    for (size_t batch = 0; batch < batch_size; ++batch) {
+        for (size_t channel = 0; channel < num_channels; ++channel) {
+            for (size_t i = 0; i < spatial_dim; ++i) {
+                out->data[batch * num_channels * spatial_dim + channel * spatial_dim + i] =
+                    (a->data[batch * num_channels * spatial_dim + channel * spatial_dim + i] - mean[channel]) / stddev[channel];
+            }
+        }
+    }
+}
+
+inline void nnrt_image_to_gray(nnrt_Tensor *a, nnrt_Tensor *out) {
+    size_t batch_size = a->shape[0];
+    size_t height = a->shape[1];
+    size_t width = a->shape[2];
+    size_t channels = a->shape[3];
+
+    // Check if the input image is a 3-channel RGB image
+    if (channels != 3) {
+        printf("Error: Expected a 3-channel image but got a %zu-channel image\n", channels);
+        return;
+    }
+
+    for (size_t b = 0; b < batch_size; ++b) {
+        for (size_t i = 0; i < height; ++i) {
+            for (size_t j = 0; j < width; ++j) {
+                size_t idx = (b * height * width + i * width + j) * channels;
+                NNRT_FLOAT gray = (a->data[idx] + a->data[idx + 1] + a->data[idx + 2]) / 3.0f;
+                out->data[b * height * width + i * width + j] = gray;
+            }
+        }
+    }
+}
+
 nnrt_Tensor *nnrt_tensor_alloc(int ndim, int *shape) {
     nnrt_Tensor *tensor = (nnrt_Tensor *)malloc(sizeof(nnrt_Tensor));
     tensor->ndim = ndim;
