@@ -5,12 +5,14 @@ The runtime library is written in pure C.
 
 ## Running examples
 
-The python examples use PyTorch, so you need to install it (and NumPy).
+The python examples use PyTorch, so you need to install it (and NumPy). Run the python script to train and dump model weights, then build and run the C programs.
 
 - Iris:
 
-        make iris && ./iris.out
+        $ python iris.py
+        $ make iris && ./iris.out
 
 - CNN:
 
-        make cnn && ./cnn.out
+        $ python cnn.py
+        $ make cnn && ./cnn.out
