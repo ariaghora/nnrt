@@ -19,11 +19,15 @@ void nnrt_affine(nnrt_Tensor *a, nnrt_Tensor *b, nnrt_Tensor *c,
                  nnrt_Tensor *out);
 void nnrt_batchnorm_2d(nnrt_Tensor *a, int num_features,
                        float *gamma, float *shift, nnrt_Tensor *out);
-void nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel,
+void nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tensor *bias,
                   int stride, int pad, nnrt_Tensor *out);
+void nnrt_conv_2d_calc_out_size(nnrt_Tensor *a, nnrt_Tensor *kernel,
+                                int stride, int pad, int *out_h, int *out_w, int *out_c);
 void nnrt_matmul(nnrt_Tensor *a, nnrt_Tensor *b, nnrt_Tensor *out);
 void nnrt_maxpool_2d(nnrt_Tensor *a, nnrt_Tensor *kernel,
                      int stride, int pad, nnrt_Tensor *out);
+void nnrt_reshape_inplace(nnrt_Tensor *a, int *new_shape, int new_ndim);
+void nnrt_transpose_inplace(nnrt_Tensor *a);
 
 //// Actiovation functions
 void nnrt_relu(nnrt_Tensor *a, nnrt_Tensor *out);
