@@ -1,8 +1,8 @@
-from typing import List
 from io import BufferedWriter
-from torch.nn import Conv2d, Linear
+from typing import List
 
 import numpy as np
+from torch.nn import Conv2d, Linear
 
 
 def dump_i32(x: int, f: BufferedWriter):

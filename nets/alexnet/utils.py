@@ -1,3 +1,5 @@
+import os
+
 import torch
 
 from dump.dump import dump_ndarray, dump_torch_conv2d, dump_torch_linear
@@ -7,7 +9,6 @@ model: torch.nn.Module = torch.hub.load(
 )
 model.eval()
 
-import os
 
 model_path = os.path.join(os.path.dirname(__file__), "alexnet.dat")
 

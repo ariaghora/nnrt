@@ -2,10 +2,10 @@ import numpy as np
 import torch
 from sklearn.datasets import load_digits
 from sklearn.model_selection import train_test_split
-from torch.nn import CrossEntropyLoss, Conv2d, Linear, Module
+from torch.nn import Conv2d, CrossEntropyLoss, Linear, Module
 from torch.optim import Adam
 
-from dump import dump_torch_conv2d, dump_torch_linear, dump_ndarray
+from dump import dump_ndarray, dump_torch_conv2d, dump_torch_linear
 
 WEIGHT_PATH = "cnn.dat"
 X_TEST_PATH = "x_test.dat"
