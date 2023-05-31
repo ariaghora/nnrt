@@ -15,6 +15,8 @@ typedef struct {
 } nnrt_Tensor;
 
 //// Layers
+void nnrt_adaptive_avg_pool2d(nnrt_Tensor *a, int output_h, int output_w,
+                              nnrt_Tensor *out);
 void nnrt_affine(nnrt_Tensor *a, nnrt_Tensor *b, nnrt_Tensor *c,
                  nnrt_Tensor *out);
 void nnrt_batchnorm_2d(nnrt_Tensor *a, int num_features,

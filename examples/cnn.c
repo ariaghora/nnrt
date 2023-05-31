@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "nnrt.h"
-#include "nnrt_layers.h"
+#include "../nnrt.h"
+#include "../nnrt_layers.h"
 
 int main(void) {
     char *weight_filename = "cnn.dat";

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "nnrt.h"
+#include "../nnrt.h"
 
 int main(void) {
     // Sample of min-max scaled of iris dataset
@@ -18,6 +18,10 @@ int main(void) {
     // Load trained parameters
     char *filename = "mlp.dat";
     FILE *fp = fopen(filename, "rb");
+    if (!fp) {
+        printf("Cannot load weight\n");
+        exit(1);
+    }
     nnrt_Tensor *w1 = nnrt_tensor_fread(fp);
     nnrt_Tensor *w2 = nnrt_tensor_fread(fp);
     nnrt_Tensor *w3 = nnrt_tensor_fread(fp);
