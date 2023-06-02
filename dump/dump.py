@@ -38,7 +38,7 @@ def dump_torch_conv2d(layer: Conv2d, f: BufferedWriter):
 
 
 def dump_torch_linear(layer: Linear, f: BufferedWriter):
-    w = layer.weight.detach().numpy()
+    w = layer.weight.detach().numpy().T
     b = layer.bias.detach().numpy()
     dump_ndarray(w, f)
     dump_ndarray(b, f)

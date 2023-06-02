@@ -102,56 +102,59 @@ void nnrt_batchnorm_2d(nnrt_Tensor *a, int num_features, float *gamma, float *sh
 
 inline void nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tensor *bias,
                          int stride, int pad, nnrt_Tensor *out) {
-    size_t N = a->shape[0];
-    size_t C = a->shape[1];
-    size_t H = a->shape[2];
-    size_t W = a->shape[3];
+    // Get input dimensions
+    int batch_size = a->shape[0];
+    int input_channels = a->shape[1];
+    int input_height = a->shape[2];
+    int input_width = a->shape[3];
 
-    size_t KH = kernel->shape[2];
-    size_t KW = kernel->shape[3];
+    // Get kernel dimensions
+    int kernel_height = kernel->shape[2];
+    int kernel_width = kernel->shape[3];
+    int output_channels = kernel->shape[0];
 
-    // extend H and W with padding
-    size_t HP = H + 2 * pad;
-    size_t WP = W + 2 * pad;
+    // Output dimensions
+    int output_height = (input_height + 2 * pad - kernel_height) / stride + 1;
+    int output_width = (input_width + 2 * pad - kernel_width) / stride + 1;
 
-    // create padded input tensor
-    NNRT_FLOAT *a_pad = (NNRT_FLOAT *)calloc(N * C * HP * WP, sizeof(NNRT_FLOAT));
-    for (size_t n = 0; n < N; n++) {
-        for (size_t c = 0; c < C; c++) {
-            for (size_t h = 0; h < H; h++) {
-                for (size_t w = 0; w < W; w++) {
-                    a_pad[n * (C * HP * WP) + c * (HP * WP) + (h + pad) * WP + (w + pad)] =
-                        a->data[n * (C * H * W) + c * (H * W) + h * W + w];
-                }
-            }
-        }
-    }
+    // Loop over each element of the output tensor
+    for (int n = 0; n < batch_size; n++) {
+        for (int c = 0; c < output_channels; c++) {
+            for (int h = 0; h < output_height; h++) {
+                for (int w = 0; w < output_width; w++) {
+                    int out_idx = n * output_channels * output_height * output_width +
+                                  c * output_height * output_width +
+                                  h * output_width + w;
 
-    for (size_t n = 0; n < N; n++) {
-        for (size_t m = 0; m < out->shape[1]; m++) {
-            for (size_t c = 0; c < C; c++) {
-                for (size_t h = 0; h <= (HP - KH); h += stride) {
-                    for (size_t w = 0; w <= (WP - KW); w += stride) {
-                        NNRT_FLOAT sum = 0.0;
-                        for (size_t i = 0; i < KH; i++) {
-                            for (size_t j = 0; j < KW; j++) {
-                                sum += a_pad[n * (C * HP * WP) + c * (HP * WP) + (h + i) * WP + (w + j)] *
-                                       kernel->data[m * (C * KH * KW) + c * (KH * KW) + i * KW + j];
+                    // Initialize output at current location to bias
+                    out->data[out_idx] = bias->data[c];
+
+                    // Convolution operation
+                    for (int i = 0; i < kernel_height; i++) {
+                        for (int j = 0; j < kernel_width; j++) {
+                            for (int k = 0; k < input_channels; k++) {
+                                // Calculate input height and width
+                                int h_in = h * stride - pad + i;
+                                int w_in = w * stride - pad + j;
+
+                                // If within padded input dimensions
+                                if (h_in >= 0 && h_in < input_height && w_in >= 0 && w_in < input_width) {
+                                    int in_idx = n * input_channels * input_height * input_width +
+                                                 k * input_height * input_width +
+                                                 h_in * input_width + w_in;
+                                    int k_idx = c * input_channels * kernel_height * kernel_width +
+                                                k * kernel_height * kernel_width +
+                                                i * kernel_width + j;
+                                    // Increase current output element by input multiplied by kernel
+                                    out->data[out_idx] += a->data[in_idx] * kernel->data[k_idx];
+                                }
                             }
                         }
-                        size_t oidx = n * (out->shape[1] * out->shape[2] * out->shape[3]) +
-                                      m * (out->shape[2] * out->shape[3]) +
-                                      (h / stride) * out->shape[3] +
-                                      (w / stride);
-                        out->data[oidx] += sum + bias->data[m];
                     }
                 }
             }
         }
     }
-
-    // free memory of padded input tensor
-    free(a_pad);
 }
 
 inline void nnrt_conv_2d_calc_out_size(nnrt_Tensor *a, nnrt_Tensor *kernel,
@@ -159,15 +162,15 @@ inline void nnrt_conv_2d_calc_out_size(nnrt_Tensor *a, nnrt_Tensor *kernel,
     // input shape: [batch_size, in_channels, height, width]
     // kernel shape: [out_channels, in_channels, k_height, k_width]
 
-    size_t in_height = a->shape[2];
-    size_t in_width = a->shape[3];
+    int in_height = a->shape[2];
+    int in_width = a->shape[3];
 
-    size_t out_channels = kernel->shape[0];
-    size_t k_height = kernel->shape[2];
-    size_t k_width = kernel->shape[3];
+    int out_channels = kernel->shape[0];
+    int k_height = kernel->shape[2];
+    int k_width = kernel->shape[3];
 
-    size_t out_height = (in_height - k_height + 2 * pad) / stride + 1;
-    size_t out_width = (in_width - k_width + 2 * pad) / stride + 1;
+    int out_height = (in_height - k_height + 2 * pad) / stride + 1;
+    int out_width = (in_width - k_width + 2 * pad) / stride + 1;
 
     *out_h = out_height;
     *out_w = out_width;
@@ -191,10 +194,10 @@ inline void nnrt_matmul(nnrt_Tensor *a, nnrt_Tensor *b, nnrt_Tensor *out) {
     }
 }
 
-inline void nnrt_maxpool_2d(nnrt_Tensor *a, nnrt_Tensor *kernel,
+inline void nnrt_maxpool_2d(nnrt_Tensor *a, int kernel_size,
                             int stride, int pad, nnrt_Tensor *out) {
     size_t batch_size = a->shape[0], num_channels = a->shape[1], height = a->shape[2], width = a->shape[3];
-    size_t kH = kernel->shape[0], kW = kernel->shape[1];
+    size_t kH = kernel_size, kW = kernel_size;
     size_t outH = (height - kH + 2 * pad) / stride + 1;
     size_t outW = (width - kW + 2 * pad) / stride + 1;
 
@@ -205,9 +208,9 @@ inline void nnrt_maxpool_2d(nnrt_Tensor *a, nnrt_Tensor *kernel,
                     NNRT_FLOAT max_val = -MAXFLOAT;
                     for (size_t ki = 0; ki < kH; ++ki) {
                         for (size_t kj = 0; kj < kW; ++kj) {
-                            size_t in_i = stride * i + ki - pad;
-                            size_t in_j = stride * j + kj - pad;
-                            if (in_i < height && in_j < width) {
+                            long in_i = stride * i + ki - pad;  // use signed integer type
+                            long in_j = stride * j + kj - pad;  // use signed integer type
+                            if (in_i >= 0 && in_j >= 0 && in_i < height && in_j < width) {
                                 float val = a->data[batch * num_channels * height * width +
                                                     channel * height * width +
                                                     in_i * width + in_j];
@@ -222,6 +225,16 @@ inline void nnrt_maxpool_2d(nnrt_Tensor *a, nnrt_Tensor *kernel,
             }
         }
     }
+}
+
+void nnrt_maxpool_2d_calc_out_size(nnrt_Tensor *a, int kernel_size, int stride, int pad, int *out_h, int *out_w, int *out_c) {
+    int H = a->shape[2];
+    int W = a->shape[3];
+    int C = a->shape[1];
+
+    *out_h = (H + 2 * pad - kernel_size) / stride + 1;
+    *out_w = (W + 2 * pad - kernel_size) / stride + 1;
+    *out_c = C;
 }
 
 inline void nnrt_reshape_inplace(nnrt_Tensor *a, int *new_shape, int new_ndim) {

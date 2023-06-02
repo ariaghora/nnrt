@@ -32,10 +32,7 @@ nnrt_LinearLayer *nnrt_linear_layer_fread(FILE *fp) {
 }
 
 void nnrt_linear_layer_forward(nnrt_Tensor *x, nnrt_LinearLayer *l, nnrt_Tensor *out) {
-    nnrt_Tensor *wt = nnrt_tensor_alloc(l->w->ndim, l->w->shape);
-    memcpy(wt->data, l->w->data, nnrt_tensor_size(l->w) * sizeof(NNRT_FLOAT));
-    nnrt_transpose_inplace(wt);
-    nnrt_affine(x, wt, l->b, out);
+    nnrt_affine(x, l->w, l->b, out);
 }
 
 void nnrt_linear_layer_free(nnrt_LinearLayer *l) {

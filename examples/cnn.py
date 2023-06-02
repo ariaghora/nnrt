@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from torch.nn import Conv2d, CrossEntropyLoss, Linear, Module
 from torch.optim import Adam
 
-from dump import dump_ndarray, dump_torch_conv2d, dump_torch_linear
+from dump.dump import dump_ndarray, dump_torch_conv2d, dump_torch_linear
 
 WEIGHT_PATH = "cnn.dat"
 X_TEST_PATH = "x_test.dat"
