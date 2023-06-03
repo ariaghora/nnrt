@@ -122,19 +122,26 @@ inline void nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tensor *bias,
     // Loop over each element of the output tensor
     for (int n = 0; n < batch_size; n++) {
         for (int c = 0; c < output_channels; c++) {
+            // Initialize entire output channel to bias
             for (int h = 0; h < output_height; h++) {
                 for (int w = 0; w < output_width; w++) {
                     int out_idx = n * output_channels * output_height * output_width +
                                   c * output_height * output_width +
                                   h * output_width + w;
-
-                    // Initialize output at current location to bias
                     out->data[out_idx] = bias->data[c];
+                }
+            }
 
-                    // Convolution operation
-                    for (int i = 0; i < kernel_height; i++) {
-                        for (int j = 0; j < kernel_width; j++) {
-                            for (int k = 0; k < input_channels; k++) {
+            // Convolution operation
+            for (int i = 0; i < kernel_height; i++) {
+                for (int j = 0; j < kernel_width; j++) {
+                    for (int k = 0; k < input_channels; k++) {
+                        int k_idx = c * input_channels * kernel_height * kernel_width +
+                                    k * kernel_height * kernel_width +
+                                    i * kernel_width + j;
+
+                        for (int h = 0; h < output_height; h++) {
+                            for (int w = 0; w < output_width; w++) {
                                 // Calculate input height and width
                                 int h_in = h * stride - pad + i;
                                 int w_in = w * stride - pad + j;
@@ -144,10 +151,11 @@ inline void nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tensor *bias,
                                     int in_idx = n * input_channels * input_height * input_width +
                                                  k * input_height * input_width +
                                                  h_in * input_width + w_in;
-                                    int k_idx = c * input_channels * kernel_height * kernel_width +
-                                                k * kernel_height * kernel_width +
-                                                i * kernel_width + j;
+
                                     // Increase current output element by input multiplied by kernel
+                                    int out_idx = n * output_channels * output_height * output_width +
+                                                  c * output_height * output_width +
+                                                  h * output_width + w;
                                     out->data[out_idx] += a->data[in_idx] * kernel->data[k_idx];
                                 }
                             }
