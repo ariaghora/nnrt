@@ -1,6 +1,6 @@
 PY=python3
 CC=gcc
-CFLAGS=-Wall -Werror -pedantic -O3 -lm -ftree-vectorize -march=armv8.4-a
+CFLAGS=-Wall -Werror -pedantic -O3 -lm -ftree-vectorize -fno-trapping-math -mcpu=apple-m1 
 
 # Building examples
 # -----------------

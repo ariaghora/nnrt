@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MATMUL_BLOCK_SIZE 64
+#define MATMUL_BLOCK_SIZE 128
 
 inline void nnrt_adaptive_avg_pool2d(nnrt_Tensor *input, int output_h, int output_w,
                                      nnrt_Tensor *output) {
