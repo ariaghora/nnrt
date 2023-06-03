@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MATMUL_BLOCK_SIZE 64
+
 inline void nnrt_adaptive_avg_pool2d(nnrt_Tensor *input, int output_h, int output_w,
                                      nnrt_Tensor *output) {
     size_t N = input->shape[0];
@@ -183,12 +185,23 @@ inline void nnrt_matmul(nnrt_Tensor *a, nnrt_Tensor *b, nnrt_Tensor *out) {
                a->shape[1], b->shape[0]);
         exit(1);
     }
-    for (int i = 0; i < a->shape[0]; ++i) {
-        for (int j = 0; j < b->shape[1]; ++j) {
-            out->data[i * a->shape[1] + j] = 0.0f;
-            for (int k = 0; k < a->shape[1]; ++k) {
-                out->data[i * b->shape[1] + j] +=
-                    a->data[i * a->shape[1] + k] * b->data[k * b->shape[1] + j];
+
+    for (int i = 0; i < a->shape[0]; i += MATMUL_BLOCK_SIZE) {
+        for (int j = 0; j < b->shape[1]; j += MATMUL_BLOCK_SIZE) {
+            for (int k = 0; k < a->shape[1]; k += MATMUL_BLOCK_SIZE) {
+                /* Compute each block. */
+                int max_i2 = (i + MATMUL_BLOCK_SIZE > a->shape[0] ? a->shape[0] : i + MATMUL_BLOCK_SIZE);
+                int max_j2 = (j + MATMUL_BLOCK_SIZE > b->shape[1] ? b->shape[1] : j + MATMUL_BLOCK_SIZE);
+                int max_k2 = (k + MATMUL_BLOCK_SIZE > a->shape[1] ? a->shape[1] : k + MATMUL_BLOCK_SIZE);
+                for (int i2 = i; i2 < max_i2; ++i2) {
+                    for (int j2 = j; j2 < max_j2; ++j2) {
+                        float sum = out->data[i2 * b->shape[1] + j2];
+                        for (int k2 = k; k2 < max_k2; ++k2) {
+                            sum += a->data[i2 * a->shape[1] + k2] * b->data[k2 * b->shape[1] + j2];
+                        }
+                        out->data[i2 * b->shape[1] + j2] = sum;
+                    }
+                }
             }
         }
     }
