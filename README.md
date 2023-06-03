@@ -16,3 +16,10 @@ The python examples use PyTorch, so you need to install it (and NumPy). Run the 
 
         $ python cnn.py
         $ make cnn && ./cnn.out
+
+## Some neural nets
+
+### AlexNet
+
+Run `make alexnet` at the project root directory
+![screenshot of alexnet classifier classifying a samoyed dog image](assets/alexnet.png)
