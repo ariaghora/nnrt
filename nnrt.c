@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
+ 
 #define MATMUL_BLOCK_SIZE 128
 
 inline nnrt_Tensor *nnrt_adaptive_avg_pool2d(nnrt_Tensor *input, int output_h, int output_w) {
@@ -44,11 +44,6 @@ inline nnrt_Tensor *nnrt_adaptive_avg_pool2d(nnrt_Tensor *input, int output_h, i
 }
 
 inline nnrt_Tensor *nnrt_affine(nnrt_Tensor *x, nnrt_Tensor *w, nnrt_Tensor *b) {
-    // x * w + c
-    // x: [m, p]
-    // w: [p, n]
-    // b: [1, n]
-
     if ((b->ndim > 2) || b->ndim < 1) {
         printf("c must be of dimension 1 or 2\n");
         exit(1);
@@ -164,6 +159,78 @@ inline nnrt_Tensor* nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tenso
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+    return out;
+}
+
+inline nnrt_Tensor* nnrt_conv_transpose_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tensor *bias,
+                                           int stride, int pad) {
+    // Get input dimensions 
+    int batch_size = a->shape[0];
+    int input_channels = a->shape[1];
+    int input_height = a->shape[2];
+    int input_width = a->shape[3];
+
+    // Get kernel dimensions
+    int kernel_height = kernel->shape[2];
+    int kernel_width = kernel->shape[3];
+    int output_channels = kernel->shape[1];
+
+    // Output dimensions
+    int output_height = (input_height - 1) * stride + kernel_height - 2 * pad;
+    int output_width = (input_width - 1) * stride + kernel_width - 2 * pad;
+    nnrt_Tensor *out = nnrt_tensor_alloc(4, (int[]){batch_size, output_channels, output_height, output_width});
+
+    // Initialize entire output tensor to 0
+    memset(out->data, 0, sizeof(*out->data) * nnrt_tensor_size(out));
+
+    // Loop over each element of the input tensor
+    for (int n = 0; n < batch_size; n++) {
+        for (int k = 0; k < input_channels; k++) {
+            for (int h = 0; h < input_height; h++) {
+                for (int w = 0; w < input_width; w++) {
+                    // Deconvolution operation
+                    for (int c = 0; c < output_channels; c++) {
+                        for (int i = 0; i < kernel_height; i++) {
+                            for (int j = 0; j < kernel_width; j++) {
+                                // Calculate output height and width
+                                int h_out = h * stride + i - pad;
+                                int w_out = w * stride + j - pad;
+
+                                // If within output dimensions
+                                if (h_out >= 0 && h_out < output_height && w_out >= 0 && w_out < output_width) {
+                                    int in_idx = n * input_channels * input_height * input_width +
+                                                 k * input_height * input_width +
+                                                 h * input_width + w;
+
+                                    int k_idx = k * output_channels * kernel_height * kernel_width +
+                                                c * kernel_height * kernel_width +
+                                                i * kernel_width + j;
+
+                                    // Increase current output element by input multiplied by kernel
+                                    int out_idx = n * output_channels * output_height * output_width +
+                                                  c * output_height * output_width +
+                                                  h_out * output_width + w_out;
+                                    out->data[out_idx] += a->data[in_idx] * kernel->data[k_idx];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Add bias to each output channel
+            for (int c = 0; c < output_channels; c++) {
+                for (int h_out = 0; h_out < output_height; h_out++) {
+                    for (int w_out = 0; w_out < output_width; w_out++) {
+                        int out_idx = n * output_channels * output_height * output_width +
+                                      c * output_height * output_width +
+                                      h_out * output_width + w_out;
+                        out->data[out_idx] += bias->data[c];
                     }
                 }
             }

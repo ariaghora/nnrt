@@ -2,6 +2,14 @@ PY=python3
 CC=gcc
 CFLAGS=-Wall -Werror -pedantic -O3 -lm -ftree-vectorize -fno-trapping-math -mcpu=apple-m1 
 
+libnnrt.dylib:
+	@${CC} -dynamiclib -o libnnrt.dylib nnrt.c nnrt_layers.c ${CFLAGS}
+
+install:
+	@cp *.h /usr/local/include/
+	@cp libnnrt.dylib /usr/local/lib/
+
+
 # Building examples
 # -----------------
 
@@ -24,3 +32,4 @@ alexnet:
 clean:
 	@rm -f examples/*.dat
 	@rm -f examples/*.out
+	@rm -f *.dylib

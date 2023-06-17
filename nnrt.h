@@ -21,6 +21,8 @@ void         nnrt_batchnorm_2d(nnrt_Tensor *a, int num_features, float *gamma,
                        float *shift, nnrt_Tensor *out);
 nnrt_Tensor *nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel,
                           nnrt_Tensor *bias, int stride, int pad);
+nnrt_Tensor* nnrt_conv_transpose_2d(nnrt_Tensor *a, nnrt_Tensor *kernel,
+                                    nnrt_Tensor *bias, int stride, int pad);
 nnrt_Tensor *nnrt_matmul(nnrt_Tensor *a, nnrt_Tensor *b);
 nnrt_Tensor *nnrt_maxpool_2d(nnrt_Tensor *a, int kernel, int stride, int pad);
 void         nnrt_reshape_inplace(nnrt_Tensor *a, int *new_shape, int new_ndim);
