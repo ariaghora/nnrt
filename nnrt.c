@@ -6,8 +6,7 @@
 
 #define MATMUL_BLOCK_SIZE 128
 
-inline void nnrt_adaptive_avg_pool2d(nnrt_Tensor *input, int output_h, int output_w,
-                                     nnrt_Tensor *output) {
+inline nnrt_Tensor *nnrt_adaptive_avg_pool2d(nnrt_Tensor *input, int output_h, int output_w) {
     size_t N = input->shape[0];
     size_t C = input->shape[1];
     size_t H = input->shape[2];
@@ -15,6 +14,8 @@ inline void nnrt_adaptive_avg_pool2d(nnrt_Tensor *input, int output_h, int outpu
 
     float stride_h = (float)H / output_h;
     float stride_w = (float)W / output_w;
+
+    nnrt_Tensor *output = nnrt_tensor_alloc(4, (int[]){N, C, output_w, output_h});
 
     for (size_t n = 0; n < N; n++) {
         for (size_t c = 0; c < C; c++) {
@@ -39,14 +40,14 @@ inline void nnrt_adaptive_avg_pool2d(nnrt_Tensor *input, int output_h, int outpu
             }
         }
     }
+    return output;
 }
 
-inline void nnrt_affine(nnrt_Tensor *x, nnrt_Tensor *w, nnrt_Tensor *b, nnrt_Tensor *out) {
+inline nnrt_Tensor *nnrt_affine(nnrt_Tensor *x, nnrt_Tensor *w, nnrt_Tensor *b) {
     // x * w + c
     // x: [m, p]
     // w: [p, n]
     // b: [1, n]
-    nnrt_matmul(x, w, out);
 
     if ((b->ndim > 2) || b->ndim < 1) {
         printf("c must be of dimension 1 or 2\n");
@@ -64,11 +65,13 @@ inline void nnrt_affine(nnrt_Tensor *x, nnrt_Tensor *w, nnrt_Tensor *b, nnrt_Ten
         exit(1);
     }
 
+    nnrt_Tensor *out = nnrt_matmul(x, w);
     for (size_t i = 0; i < x->shape[0]; ++i) {
         for (size_t j = 0; j < w->shape[1]; ++j) {
             out->data[i * w->shape[1] + j] += b->data[j];
         }
     }
+    return out;
 }
 
 void nnrt_batchnorm_2d(nnrt_Tensor *a, int num_features, float *gamma, float *shift, nnrt_Tensor *out) {
@@ -102,9 +105,9 @@ void nnrt_batchnorm_2d(nnrt_Tensor *a, int num_features, float *gamma, float *sh
     }
 }
 
-inline void nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tensor *bias,
-                         int stride, int pad, nnrt_Tensor *out) {
-    // Get input dimensions
+inline nnrt_Tensor* nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tensor *bias,
+                         int stride, int pad) {
+    // Get input dimensions 
     int batch_size = a->shape[0];
     int input_channels = a->shape[1];
     int input_height = a->shape[2];
@@ -118,6 +121,7 @@ inline void nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tensor *bias,
     // Output dimensions
     int output_height = (input_height + 2 * pad - kernel_height) / stride + 1;
     int output_width = (input_width + 2 * pad - kernel_width) / stride + 1;
+    nnrt_Tensor *out = nnrt_tensor_alloc(4, (int[]){batch_size, output_channels, output_width, output_height});
 
     // Loop over each element of the output tensor
     for (int n = 0; n < batch_size; n++) {
@@ -165,35 +169,17 @@ inline void nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tensor *bias,
             }
         }
     }
+    return out;
 }
 
-inline void nnrt_conv_2d_calc_out_size(nnrt_Tensor *a, nnrt_Tensor *kernel,
-                                       int stride, int pad, int *out_h, int *out_w, int *out_c) {
-    // input shape: [batch_size, in_channels, height, width]
-    // kernel shape: [out_channels, in_channels, k_height, k_width]
-
-    int in_height = a->shape[2];
-    int in_width = a->shape[3];
-
-    int out_channels = kernel->shape[0];
-    int k_height = kernel->shape[2];
-    int k_width = kernel->shape[3];
-
-    int out_height = (in_height - k_height + 2 * pad) / stride + 1;
-    int out_width = (in_width - k_width + 2 * pad) / stride + 1;
-
-    *out_h = out_height;
-    *out_w = out_width;
-    *out_c = out_channels;
-}
-
-inline void nnrt_matmul(nnrt_Tensor *a, nnrt_Tensor *b, nnrt_Tensor *out) {
+inline nnrt_Tensor *nnrt_matmul(nnrt_Tensor *a, nnrt_Tensor *b) {
     if (a->shape[1] != b->shape[0]) {
         printf("cannot multiply tensors with incompatible shape: [m, %d], [%d, n]",
                a->shape[1], b->shape[0]);
         exit(1);
     }
 
+    nnrt_Tensor *out = nnrt_tensor_alloc(2, (int[]){a->shape[0], b->shape[1]});
     for (int i = 0; i < a->shape[0]; i += MATMUL_BLOCK_SIZE) {
         for (int j = 0; j < b->shape[1]; j += MATMUL_BLOCK_SIZE) {
             for (int k = 0; k < a->shape[1]; k += MATMUL_BLOCK_SIZE) {
@@ -213,14 +199,17 @@ inline void nnrt_matmul(nnrt_Tensor *a, nnrt_Tensor *b, nnrt_Tensor *out) {
             }
         }
     }
+    return out;
 }
 
-inline void nnrt_maxpool_2d(nnrt_Tensor *a, int kernel_size,
-                            int stride, int pad, nnrt_Tensor *out) {
+nnrt_Tensor *nnrt_maxpool_2d(nnrt_Tensor *a, int kernel_size,
+                             int stride, int pad) {
     size_t batch_size = a->shape[0], num_channels = a->shape[1], height = a->shape[2], width = a->shape[3];
     size_t kH = kernel_size, kW = kernel_size;
     size_t outH = (height - kH + 2 * pad) / stride + 1;
     size_t outW = (width - kW + 2 * pad) / stride + 1;
+
+    nnrt_Tensor *out = nnrt_tensor_alloc(4, (int[]){batch_size, num_channels, outW, outH});
 
     for (size_t batch = 0; batch < batch_size; ++batch) {
         for (size_t channel = 0; channel < num_channels; ++channel) {
@@ -246,16 +235,7 @@ inline void nnrt_maxpool_2d(nnrt_Tensor *a, int kernel_size,
             }
         }
     }
-}
-
-void nnrt_maxpool_2d_calc_out_size(nnrt_Tensor *a, int kernel_size, int stride, int pad, int *out_h, int *out_w, int *out_c) {
-    int H = a->shape[2];
-    int W = a->shape[3];
-    int C = a->shape[1];
-
-    *out_h = (H + 2 * pad - kernel_size) / stride + 1;
-    *out_w = (W + 2 * pad - kernel_size) / stride + 1;
-    *out_c = C;
+    return out;
 }
 
 inline void nnrt_reshape_inplace(nnrt_Tensor *a, int *new_shape, int new_ndim) {

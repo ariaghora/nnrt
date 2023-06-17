@@ -35,28 +35,21 @@ int main(void) {
     fclose(fp);
 
     int n_samples = x_test->shape[0];
-    int out_h, out_w, out_c;
 
     // Hidden layer 1
-    nnrt_conv_2d_calc_out_size(x_test, c1->w, c1->stride, c1->pad,
-                               &out_h, &out_w, &out_c);
-    nnrt_Tensor *h1 = nnrt_tensor_alloc(4, (int[]){n_samples, out_c, out_h, out_w});
-    nnrt_conv_2d_layer_forward(x_test, c1, h1);
+    nnrt_Tensor *h1 = nnrt_conv_2d_layer_forward(x_test, c1);
     nnrt_relu(h1, h1);
 
     // Hidden layer 2
-    nnrt_conv_2d_calc_out_size(h1, c2->w, c2->stride, c2->pad,
-                               &out_h, &out_w, &out_c);
-    nnrt_Tensor *h2 = nnrt_tensor_alloc(4, (int[]){n_samples, out_c, out_h, out_w});
-    nnrt_conv_2d_layer_forward(h1, c2, h2);
+    nnrt_Tensor *h2 = nnrt_conv_2d_layer_forward(h1, c2);
     nnrt_relu(h2, h2);
 
-    // Output layer
+    // Flatten
     nnrt_reshape_inplace(h2, (int[]){n_samples, 128}, 2);
-    nnrt_Tensor *out = nnrt_tensor_alloc(2, (int[]){n_samples, 10});
-    nnrt_linear_layer_forward(h2, li, out);
 
-    float n_match = 0;
+    // Output layer
+    nnrt_Tensor *out = nnrt_linear_layer_forward(h2, li);
+
     // Labels
     nnrt_Tensor *y_hat = nnrt_tensor_alloc(1, (int[]){n_samples});
     nnrt_argmax(out, 1, y_hat);
@@ -68,6 +61,7 @@ int main(void) {
     }
     printf("\n\n");
     printf("Actual (first 50):\n");
+    float n_match = 0;
     for (size_t i = 0; i < 50; i++) {
         printf("%d, ", (int)y_test->data[i]);
         n_match += (y_test->data[i] == y_hat->data[i]);

@@ -51,82 +51,56 @@ nnrt_Tensor *load_image_alexnet(char *filename) {
 }
 
 nnrt_Tensor *get_feature(nnrt_Tensor *image_batch, nnrt_Conv2DLayer **conv_layers, int n_conv_layers) {
-    int n = image_batch->shape[0];
-    int out_h, out_w, out_c;
-
     /// Part 1
-    nnrt_conv_2d_calc_out_size(image_batch, conv_layers[0]->w, conv_layers[0]->stride, conv_layers[0]->pad,
-                               &out_h, &out_w, &out_c);
-    nnrt_Tensor *h1 = nnrt_tensor_alloc(4, (int[]){n, out_c, out_h, out_w});
-    nnrt_conv_2d_layer_forward(image_batch, conv_layers[0], h1);
+    nnrt_Tensor *h1 =nnrt_conv_2d_layer_forward(image_batch, conv_layers[0] );
     nnrt_relu(h1, h1);
-    nnrt_maxpool_2d_calc_out_size(h1, 3, 2, 0, &out_h, &out_w, &out_c);
-    nnrt_Tensor *h1_pool = nnrt_tensor_alloc(4, (int[]){n, out_c, out_h, out_w});
-    nnrt_maxpool_2d(h1, 3, 2, 0, h1_pool);
+    nnrt_Tensor *h1_pool = nnrt_maxpool_2d(h1, 3, 2, 0);
+    nnrt_tensor_free(h1);
 
     /// Part 2
-    nnrt_conv_2d_calc_out_size(h1_pool, conv_layers[1]->w, conv_layers[1]->stride, conv_layers[1]->pad,
-                               &out_h, &out_w, &out_c);
-    nnrt_Tensor *h2 = nnrt_tensor_alloc(4, (int[]){n, out_c, out_h, out_w});
-    nnrt_conv_2d_layer_forward(h1_pool, conv_layers[1], h2);
-    nnrt_relu(h2, h2);
-    nnrt_maxpool_2d_calc_out_size(h2, 3, 2, 0, &out_h, &out_w, &out_c);
-    nnrt_Tensor *h2_pool = nnrt_tensor_alloc(4, (int[]){n, out_c, out_h, out_w});
-    nnrt_tensor_free(h1);
+    nnrt_Tensor *h2 = nnrt_conv_2d_layer_forward(h1_pool, conv_layers[1] );
     nnrt_tensor_free(h1_pool);
-    nnrt_maxpool_2d(h2, 3, 2, 0, h2_pool);
+    nnrt_relu(h2, h2);
+    nnrt_Tensor *h2_pool = nnrt_maxpool_2d(h2, 3, 2, 0);
+    nnrt_tensor_free(h2);
 
     /// Part 3
-    nnrt_conv_2d_calc_out_size(h2_pool, conv_layers[2]->w, conv_layers[2]->stride, conv_layers[2]->pad,
-                               &out_h, &out_w, &out_c);
-    nnrt_Tensor *h3 = nnrt_tensor_alloc(4, (int[]){n, out_c, out_h, out_w});
-    nnrt_conv_2d_layer_forward(h2_pool, conv_layers[2], h3);
-    nnrt_tensor_free(h2);
+    nnrt_Tensor *h3 = nnrt_conv_2d_layer_forward(h2_pool, conv_layers[2]);
     nnrt_tensor_free(h2_pool);
     nnrt_relu(h3, h3);
 
     /// Part 4
-    nnrt_conv_2d_calc_out_size(h3, conv_layers[3]->w, conv_layers[3]->stride, conv_layers[3]->pad,
-                               &out_h, &out_w, &out_c);
-    nnrt_Tensor *h4 = nnrt_tensor_alloc(4, (int[]){n, out_c, out_h, out_w});
-    nnrt_conv_2d_layer_forward(h3, conv_layers[3], h4);
+    nnrt_Tensor *h4 = nnrt_conv_2d_layer_forward(h3, conv_layers[3]);
     nnrt_tensor_free(h3);
     nnrt_relu(h4, h4);
 
     /// Part 5
-    nnrt_conv_2d_calc_out_size(h4, conv_layers[4]->w, conv_layers[4]->stride, conv_layers[4]->pad,
-                               &out_h, &out_w, &out_c);
-    nnrt_Tensor *h5 = nnrt_tensor_alloc(4, (int[]){n, out_c, out_h, out_w});
-    nnrt_conv_2d_layer_forward(h4, conv_layers[4], h5);
+    nnrt_Tensor *h5 = nnrt_conv_2d_layer_forward(h4, conv_layers[4]);
     nnrt_tensor_free(h4);
     nnrt_relu(h5, h5);
-    nnrt_maxpool_2d_calc_out_size(h5, 3, 2, 0, &out_h, &out_w, &out_c);
-    nnrt_Tensor *h5_pool = nnrt_tensor_alloc(4, (int[]){n, out_c, out_h, out_w});
-    nnrt_maxpool_2d(h5, 3, 2, 0, h5_pool);
-
-    nnrt_Tensor *h5_pool_adaptive = nnrt_tensor_alloc(4, (int[]){n, out_c, 6, 6});
-    nnrt_adaptive_avg_pool2d(h5_pool, 6, 6, h5_pool_adaptive);
-
-    nnrt_reshape_inplace(h5_pool_adaptive, (int[]){n, out_c * 6 * 6}, 2);
-
+    nnrt_Tensor *h5_pool = nnrt_maxpool_2d(h5, 3, 2, 0);
     nnrt_tensor_free(h5);
+
+    nnrt_Tensor *h5_pool_adaptive = nnrt_adaptive_avg_pool2d(h5_pool, 6, 6);
     nnrt_tensor_free(h5_pool);
+
+    // Flatten
+    nnrt_reshape_inplace(h5_pool_adaptive,
+                         (int[]){h5_pool_adaptive->shape[0], h5_pool_adaptive->shape[1] * 6 * 6}, 2);
+
     return h5_pool_adaptive;
 }
 
 int get_prediction(nnrt_Tensor *feature, nnrt_LinearLayer **linear_layers, int n_linear_layers) {
-    size_t n = feature->shape[0];
-    nnrt_Tensor *fc1 = nnrt_tensor_alloc(2, (int[]){n, linear_layers[0]->w->shape[1]});
-    nnrt_linear_layer_forward(feature, linear_layers[0], fc1);
+    nnrt_Tensor *fc1 = nnrt_linear_layer_forward(feature, linear_layers[0]);
     nnrt_relu(fc1, fc1);
 
-    nnrt_Tensor *fc2 = nnrt_tensor_alloc(2, (int[]){n, linear_layers[1]->w->shape[1]});
-    nnrt_linear_layer_forward(fc1, linear_layers[1], fc2);
+    nnrt_Tensor *fc2 = nnrt_linear_layer_forward(fc1, linear_layers[1]);
     nnrt_relu(fc2, fc2);
 
-    nnrt_Tensor *fc3 = nnrt_tensor_alloc(2, (int[]){n, linear_layers[2]->w->shape[1]});
-    nnrt_linear_layer_forward(fc2, linear_layers[2], fc3);
+    nnrt_Tensor *fc3 = nnrt_linear_layer_forward(fc2, linear_layers[2]);
 
+    size_t n = feature->shape[0];
     nnrt_Tensor *out = nnrt_tensor_alloc(2, (int[]){n, 1});
     nnrt_argmax(fc3, 1, out);
 
@@ -135,6 +109,7 @@ int get_prediction(nnrt_Tensor *feature, nnrt_LinearLayer **linear_layers, int n
     nnrt_tensor_free(fc1);
     nnrt_tensor_free(fc2);
     nnrt_tensor_free(fc3);
+    nnrt_tensor_free(out);
     return label_idx;
 }
 

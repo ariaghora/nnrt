@@ -16,11 +16,11 @@ typedef struct {
 } nnrt_LinearLayer;
 
 nnrt_Conv2DLayer *nnrt_conv_2d_layer_fread(FILE *fp);
-void nnrt_conv_2d_layer_forward(nnrt_Tensor *x, nnrt_Conv2DLayer *l, nnrt_Tensor *out);
+nnrt_Tensor *nnrt_conv_2d_layer_forward(nnrt_Tensor *x, nnrt_Conv2DLayer *l);
 void nnrt_conv_2d_layer_free(nnrt_Conv2DLayer *l);
 
 nnrt_LinearLayer *nnrt_linear_layer_fread(FILE *fp);
-void nnrt_linear_layer_forward(nnrt_Tensor *x, nnrt_LinearLayer *l, nnrt_Tensor *out);
+nnrt_Tensor *nnrt_linear_layer_forward(nnrt_Tensor *x, nnrt_LinearLayer *l);
 void nnrt_linear_layer_free(nnrt_LinearLayer *l);
 
 #endif

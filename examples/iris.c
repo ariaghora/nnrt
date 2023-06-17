@@ -31,18 +31,15 @@ int main(void) {
     fclose(fp);
 
     // Hidden layer 1
-    nnrt_Tensor *h1 = nnrt_tensor_alloc(2, (int[]){4, 100});
-    nnrt_affine(x, w1, b1, h1);
+    nnrt_Tensor *h1 = nnrt_affine(x, w1, b1);
     nnrt_relu(h1, h1);
 
     // Hidden layer 2
-    nnrt_Tensor *h2 = nnrt_tensor_alloc(2, (int[]){4, 20});
-    nnrt_affine(h1, w2, b2, h2);
+    nnrt_Tensor *h2 = nnrt_affine(h1, w2, b2);
     nnrt_relu(h2, h2);
 
     // Output layer
-    nnrt_Tensor *out = nnrt_tensor_alloc(2, (int[]){4, 3});
-    nnrt_affine(h2, w3, b3, out);
+    nnrt_Tensor *out = nnrt_affine(h2, w3, b3);
     nnrt_relu(out, out);
 
     //// optionally, calculate softmax
