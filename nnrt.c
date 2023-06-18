@@ -108,20 +108,20 @@ inline nnrt_Tensor* nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tenso
     int input_height = a->shape[2];
     int input_width = a->shape[3];
 
-    // Get kernel dimensions
+    // get kernel dimensions
     int kernel_height = kernel->shape[2];
     int kernel_width = kernel->shape[3];
     int output_channels = kernel->shape[0];
 
-    // Output dimensions
+    // output dimensions
     int output_height = (input_height + 2 * pad - kernel_height) / stride + 1;
     int output_width = (input_width + 2 * pad - kernel_width) / stride + 1;
     nnrt_Tensor *out = nnrt_tensor_alloc(4, (int[]){batch_size, output_channels, output_width, output_height});
 
-    // Loop over each element of the output tensor
+    // loop over each element of the output tensor
     for (int n = 0; n < batch_size; n++) {
         for (int c = 0; c < output_channels; c++) {
-            // Initialize entire output channel to bias
+            // initialize entire output channel to bias
             for (int h = 0; h < output_height; h++) {
                 for (int w = 0; w < output_width; w++) {
                     int out_idx = n * output_channels * output_height * output_width +
@@ -131,7 +131,7 @@ inline nnrt_Tensor* nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tenso
                 }
             }
 
-            // Convolution operation
+            // convolution operation
             for (int i = 0; i < kernel_height; i++) {
                 for (int j = 0; j < kernel_width; j++) {
                     for (int k = 0; k < input_channels; k++) {
@@ -141,17 +141,17 @@ inline nnrt_Tensor* nnrt_conv_2d(nnrt_Tensor *a, nnrt_Tensor *kernel, nnrt_Tenso
 
                         for (int h = 0; h < output_height; h++) {
                             for (int w = 0; w < output_width; w++) {
-                                // Calculate input height and width
+                                // calculate input height and width
                                 int h_in = h * stride - pad + i;
                                 int w_in = w * stride - pad + j;
 
-                                // If within padded input dimensions
+                                // if within padded input dimensions
                                 if (h_in >= 0 && h_in < input_height && w_in >= 0 && w_in < input_width) {
                                     int in_idx = n * input_channels * input_height * input_width +
                                                  k * input_height * input_width +
                                                  h_in * input_width + w_in;
 
-                                    // Increase current output element by input multiplied by kernel
+                                    // increase current output element by input multiplied by kernel
                                     int out_idx = n * output_channels * output_height * output_width +
                                                   c * output_height * output_width +
                                                   h * output_width + w;
@@ -494,9 +494,9 @@ inline void nnrt_image_standardize(nnrt_Tensor *a, float *mean, float *stddev, n
 
 inline void nnrt_image_to_gray(nnrt_Tensor *a, nnrt_Tensor *out) {
     size_t batch_size = a->shape[0];
-    size_t height = a->shape[1];
-    size_t width = a->shape[2];
-    size_t channels = a->shape[3];
+    size_t channels = a->shape[1];
+    size_t height = a->shape[2];
+    size_t width = a->shape[3];
 
     // Check if the input image is a 3-channel RGB image
     if (channels != 3) {
@@ -505,15 +505,22 @@ inline void nnrt_image_to_gray(nnrt_Tensor *a, nnrt_Tensor *out) {
     }
 
     for (size_t b = 0; b < batch_size; ++b) {
-        for (size_t i = 0; i < height; ++i) {
-            for (size_t j = 0; j < width; ++j) {
-                size_t idx = (b * height * width + i * width + j) * channels;
-                NNRT_FLOAT gray = (a->data[idx] + a->data[idx + 1] + a->data[idx + 2]) / 3.0f;
-                out->data[b * height * width + i * width + j] = gray;
+        for (size_t c = 0; c < channels; ++c) {
+            for (size_t i = 0; i < height; ++i) {
+                for (size_t j = 0; j < width; ++j) {
+                    size_t idx = b * channels * height * width + c * height * width + i * width + j;
+                    size_t gray_idx = b * height * width + i * width + j;
+
+                    if (c == 0)
+                        out->data[gray_idx] = a->data[idx] / 3.0f; // Initialize grayscale value with the first channel
+                    else
+                        out->data[gray_idx] += a->data[idx] / 3.0f; // Add the rest of the channels to the grayscale value
+                }
             }
         }
     }
 }
+
 
 nnrt_Tensor *nnrt_tensor_alloc(int ndim, int *shape) {
     nnrt_Tensor *tensor = (nnrt_Tensor *)malloc(sizeof(nnrt_Tensor));
