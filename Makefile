@@ -1,6 +1,6 @@
 PY=python3
-CC=gcc
-CFLAGS=-Wall -Werror -pedantic -O3 -lm -ftree-vectorize -fno-trapping-math -mcpu=apple-m1 
+CC=clang
+CFLAGS=-Wall -Werror -pedantic -O3 -ftree-vectorize -fno-trapping-math -mcpu=apple-m1 -funroll-loops -ffast-math
 
 libnnrt.dylib:
 	@${CC} -dynamiclib -o libnnrt.dylib nnrt.c nnrt_layers.c ${CFLAGS}
