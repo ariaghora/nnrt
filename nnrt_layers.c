@@ -14,7 +14,7 @@ nnrt_Conv2DLayer *nnrt_conv_2d_layer_fread(FILE *fp) {
     return layer;
 } 
 
-nnrt_Tensor* nnrt_conv_2d_layer_forward(nnrt_Tensor *x, nnrt_Conv2DLayer *l) {
+nnrt_Tensor* nnrt_conv_2d_layer_forward(nnrt_Conv2DLayer *l, nnrt_Tensor *x) {
     return nnrt_conv_2d(x, l->w, l->b, l->stride, l->pad);
 }
 
@@ -33,7 +33,7 @@ nnrt_ConvTranspose2DLayer *nnrt_conv_transpose_2d_fread(FILE *fp) {
     return layer;
 }
 
-nnrt_Tensor *nnrt_conv_transpose_2d_forward(nnrt_Tensor *x, nnrt_ConvTranspose2DLayer *l) {
+nnrt_Tensor *nnrt_conv_transpose_2d_forward(nnrt_ConvTranspose2DLayer *l, nnrt_Tensor *x) {
     return nnrt_conv_transpose_2d(x, l->w, l->b, l->stride, l->pad);
 }
 
@@ -50,7 +50,7 @@ nnrt_LinearLayer *nnrt_linear_layer_fread(FILE *fp) {
     return layer;
 }
 
-nnrt_Tensor *nnrt_linear_layer_forward(nnrt_Tensor *x, nnrt_LinearLayer *l) {
+nnrt_Tensor *nnrt_linear_layer_forward(nnrt_LinearLayer *l, nnrt_Tensor *x) {
     return nnrt_affine(x, l->w, l->b);
 }
 

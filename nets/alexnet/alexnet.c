@@ -17,30 +17,30 @@
 
 nnrt_Tensor *get_feature(nnrt_Tensor *image_batch, nnrt_Conv2DLayer **conv_layers, int n_conv_layers) {
     /// Part 1
-    nnrt_Tensor *h1 =nnrt_conv_2d_layer_forward(image_batch, conv_layers[0] );
+    nnrt_Tensor *h1 =nnrt_conv_2d_layer_forward(conv_layers[0], image_batch);
     nnrt_relu(h1, h1);
     nnrt_Tensor *h1_pool = nnrt_maxpool_2d(h1, 3, 2, 0);
     nnrt_tensor_free(h1);
 
     /// Part 2
-    nnrt_Tensor *h2 = nnrt_conv_2d_layer_forward(h1_pool, conv_layers[1] );
+    nnrt_Tensor *h2 = nnrt_conv_2d_layer_forward(conv_layers[1], h1_pool);
     nnrt_tensor_free(h1_pool);
     nnrt_relu(h2, h2);
     nnrt_Tensor *h2_pool = nnrt_maxpool_2d(h2, 3, 2, 0);
     nnrt_tensor_free(h2);
 
     /// Part 3
-    nnrt_Tensor *h3 = nnrt_conv_2d_layer_forward(h2_pool, conv_layers[2]);
+    nnrt_Tensor *h3 = nnrt_conv_2d_layer_forward(conv_layers[2], h2_pool);
     nnrt_tensor_free(h2_pool);
     nnrt_relu(h3, h3);
 
     /// Part 4
-    nnrt_Tensor *h4 = nnrt_conv_2d_layer_forward(h3, conv_layers[3]);
+    nnrt_Tensor *h4 = nnrt_conv_2d_layer_forward(conv_layers[3], h3);
     nnrt_tensor_free(h3);
     nnrt_relu(h4, h4);
 
     /// Part 5
-    nnrt_Tensor *h5 = nnrt_conv_2d_layer_forward(h4, conv_layers[4]);
+    nnrt_Tensor *h5 = nnrt_conv_2d_layer_forward(conv_layers[4], h4);
     nnrt_tensor_free(h4);
     nnrt_relu(h5, h5);
     nnrt_Tensor *h5_pool = nnrt_maxpool_2d(h5, 3, 2, 0);
@@ -57,13 +57,13 @@ nnrt_Tensor *get_feature(nnrt_Tensor *image_batch, nnrt_Conv2DLayer **conv_layer
 }
 
 int get_prediction(nnrt_Tensor *feature, nnrt_LinearLayer **linear_layers, int n_linear_layers) {
-    nnrt_Tensor *fc1 = nnrt_linear_layer_forward(feature, linear_layers[0]);
+    nnrt_Tensor *fc1 = nnrt_linear_layer_forward(linear_layers[0], feature);
     nnrt_relu(fc1, fc1);
 
-    nnrt_Tensor *fc2 = nnrt_linear_layer_forward(fc1, linear_layers[1]);
+    nnrt_Tensor *fc2 = nnrt_linear_layer_forward(linear_layers[1], fc1);
     nnrt_relu(fc2, fc2);
 
-    nnrt_Tensor *fc3 = nnrt_linear_layer_forward(fc2, linear_layers[2]);
+    nnrt_Tensor *fc3 = nnrt_linear_layer_forward(linear_layers[2], fc2);
 
     size_t n = feature->shape[0];
     nnrt_Tensor *out = nnrt_tensor_alloc(2, (int[]){n, 1});
