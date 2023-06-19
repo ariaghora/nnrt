@@ -107,7 +107,6 @@ int main(int argc, char **argv) {
     fclose(fp);
 
 #include "labels.inc"
-    clock_t start = clock();
     // ======
     // nnrt_Tensor *img = load_image_alexnet(image_path);
     nnrt_Tensor *img = nnrt_image_load(image_path);
@@ -119,9 +118,6 @@ int main(int argc, char **argv) {
     nnrt_Tensor *feature = get_feature(res, conv_layers, 5);
     int label_index = get_prediction(feature, linear_layers, 3);
     // ======
-    clock_t end = clock();
-    double cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-    printf("Inference time: %f seconds\n\n", cpu_time_used);
     printf("Label index : %d\n", label_index);
     printf("Class name  : %s\n", labels[label_index]);
 
