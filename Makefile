@@ -32,4 +32,6 @@ alexnet:
 clean:
 	@rm -f examples/*.dat
 	@rm -f examples/*.out
+	@rm -f *.o
+	@rm -f *.a
 	@rm -f *.dylib
