@@ -36,8 +36,10 @@ void nnrt_softmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out);
 
 //// Image processing functions
 //   - It is assumed that images are in 4-dimension, [N, H, W, C]
-void nnrt_image_hwc_to_chw(nnrt_Tensor *a, nnrt_Tensor *out);
-void nnrt_image_chw_to_hwc(nnrt_Tensor *a, nnrt_Tensor *out);
+nnrt_Tensor *nnrt_image_load(char *filename);
+nnrt_Tensor *nnrt_image_resize(nnrt_Tensor *a, int new_h, int new_w);
+nnrt_Tensor *nnrt_image_hwc_to_chw(nnrt_Tensor *a);
+nnrt_Tensor *nnrt_image_chw_to_hwc(nnrt_Tensor *a);
 void nnrt_image_standardize(nnrt_Tensor *a, float *mean, float *stddev,
                             nnrt_Tensor *out);
 void nnrt_image_to_gray(nnrt_Tensor *a, nnrt_Tensor *out);

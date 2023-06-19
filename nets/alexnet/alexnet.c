@@ -5,11 +5,6 @@
 #include "../../nnrt.h"
 #include "../../nnrt_layers.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "../../vendor/stb/stb_image.h"
-#define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "../../vendor/stb/stb_image_resize.h"
-
 #define DEBUG(label, t) (printf("%s: [%d, %d, %d, %d]\n", \
                                 label,                    \
                                 t->shape[0],              \
@@ -19,36 +14,6 @@
 
 #define IMG_SIZE 256
 #define N_CHANNELS 3
-
-nnrt_Tensor *load_image_alexnet(char *filename) {
-    int img_h, img_w, img_c;
-    float *img = stbi_loadf(filename, &img_w, &img_h, &img_c, 3);
-    if (!img) {
-        printf("Error: cannot load image\n");
-        exit(1);
-    }
-    float *resized = (float *)calloc(IMG_SIZE * IMG_SIZE * 3, sizeof(float));
-    int status = stbir_resize_float(img, img_w, img_h, 0, resized, IMG_SIZE, IMG_SIZE, 0, N_CHANNELS);
-    if (status == 0) {
-        printf("Error: cannot resize image\n");
-        exit(1);
-    }
-
-    nnrt_Tensor *img_tensor = nnrt_tensor_alloc(4, (int[]){1, IMG_SIZE, IMG_SIZE, N_CHANNELS});
-    memcpy(img_tensor->data, resized, IMG_SIZE * IMG_SIZE * N_CHANNELS * sizeof(float));
-
-    nnrt_Tensor *img_tensor_chw = nnrt_tensor_alloc(4, (int[]){1, N_CHANNELS, IMG_SIZE, IMG_SIZE});
-    nnrt_image_hwc_to_chw(img_tensor, img_tensor_chw);
-    nnrt_image_standardize(img_tensor_chw,
-                           (float[]){0.485, 0.456, 0.406},
-                           (float[]){0.229, 0.224, 0.225},
-                           img_tensor_chw);
-
-    stbi_image_free(resized);
-    stbi_image_free(img);
-    nnrt_tensor_free(img_tensor);
-    return img_tensor_chw;
-}
 
 nnrt_Tensor *get_feature(nnrt_Tensor *image_batch, nnrt_Conv2DLayer **conv_layers, int n_conv_layers) {
     /// Part 1
@@ -144,8 +109,14 @@ int main(int argc, char **argv) {
 #include "labels.inc"
     clock_t start = clock();
     // ======
-    nnrt_Tensor *img = load_image_alexnet(image_path);
-    nnrt_Tensor *feature = get_feature(img, conv_layers, 5);
+    // nnrt_Tensor *img = load_image_alexnet(image_path);
+    nnrt_Tensor *img = nnrt_image_load(image_path);
+    nnrt_Tensor *res = nnrt_image_resize(img, IMG_SIZE, IMG_SIZE);
+    nnrt_image_standardize(res,
+                           (float[]){0.485, 0.456, 0.406},
+                           (float[]){0.229, 0.224, 0.225},
+                           res);
+    nnrt_Tensor *feature = get_feature(res, conv_layers, 5);
     int label_index = get_prediction(feature, linear_layers, 3);
     // ======
     clock_t end = clock();
@@ -161,6 +132,7 @@ int main(int argc, char **argv) {
         nnrt_linear_layer_free(linear_layers[i]);
 
     nnrt_tensor_free(img);
+    nnrt_tensor_free(res);
     nnrt_tensor_free(feature);
 
     return 0;

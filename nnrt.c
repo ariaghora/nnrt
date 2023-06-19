@@ -3,6 +3,12 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "vendor/stb/stb_image.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "vendor/stb/stb_image_resize.h"
+
  
 #define MATMUL_BLOCK_SIZE 128
 
@@ -440,11 +446,49 @@ inline void nnrt_softmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out) {
     }
 }
 
-inline void nnrt_image_hwc_to_chw(nnrt_Tensor *a, nnrt_Tensor *out) {
+nnrt_Tensor *nnrt_image_load(char *filename) {
+    int img_h, img_w, img_c;
+    float *img = stbi_loadf(filename, &img_w, &img_h, &img_c, 3);
+    if (!img) {
+        printf("Error: cannot load image\n");
+        exit(1);
+    }
+
+    nnrt_Tensor *img_tensor = nnrt_tensor_alloc(4, (int[]){1, img_h, img_w, img_c});
+    memcpy(img_tensor->data, img, img_h * img_w * img_c * sizeof(float));
+
+    nnrt_Tensor *img_tensor_chw = nnrt_image_hwc_to_chw(img_tensor);
+
+    nnrt_tensor_free(img_tensor);
+    return img_tensor_chw;
+}
+
+nnrt_Tensor *nnrt_image_resize(nnrt_Tensor *a, int new_h, int new_w) {
+    nnrt_Tensor *hwc = nnrt_image_chw_to_hwc(a);
+
+    float *resized = (float *)calloc(new_w * new_h * 3, sizeof(float));
+    int status = stbir_resize_float(hwc->data, hwc->shape[2], hwc->shape[1], 0, resized, new_w, new_h, 0, hwc->shape[3]);
+    if (status == 0) {
+        printf("Error: cannot resize image\n");
+        exit(1);
+    }
+
+    nnrt_Tensor *img_tensor = nnrt_tensor_alloc(4, (int[]){1, new_h, new_w, hwc->shape[3]});
+    memcpy(img_tensor->data, resized, new_h * new_w * hwc->shape[3] * sizeof(float));
+    stbi_image_free(resized);
+
+    nnrt_Tensor *img_tensor_chw = nnrt_image_hwc_to_chw(img_tensor);
+    nnrt_tensor_free(img_tensor);
+    return img_tensor_chw;
+}
+
+inline nnrt_Tensor *nnrt_image_hwc_to_chw(nnrt_Tensor *a) {
     size_t batch_size = a->shape[0];
     size_t height = a->shape[1];
     size_t width = a->shape[2];
     size_t channels = a->shape[3];
+
+    nnrt_Tensor *out = nnrt_tensor_alloc(4, (int[]){1, channels, height, width});
 
     for (size_t b = 0; b < batch_size; ++b) {
         for (size_t c = 0; c < channels; ++c) {
@@ -457,13 +501,17 @@ inline void nnrt_image_hwc_to_chw(nnrt_Tensor *a, nnrt_Tensor *out) {
             }
         }
     }
+
+    return out;
 }
 
-inline void nnrt_image_chw_to_hwc(nnrt_Tensor *a, nnrt_Tensor *out) {
+inline nnrt_Tensor *nnrt_image_chw_to_hwc(nnrt_Tensor *a) {
     size_t batch_size = a->shape[0];
     size_t channels = a->shape[1];
     size_t height = a->shape[2];
     size_t width = a->shape[3];
+
+    nnrt_Tensor *out = nnrt_tensor_alloc(4, (int[]){1, height, width, channels});
 
     for (size_t b = 0; b < batch_size; ++b) {
         for (size_t i = 0; i < height; ++i) {
@@ -476,6 +524,8 @@ inline void nnrt_image_chw_to_hwc(nnrt_Tensor *a, nnrt_Tensor *out) {
             }
         }
     }
+
+    return out;
 }
 
 inline void nnrt_image_standardize(nnrt_Tensor *a, float *mean, float *stddev, nnrt_Tensor *out) {
