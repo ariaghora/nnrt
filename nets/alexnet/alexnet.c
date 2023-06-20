@@ -59,7 +59,6 @@ int get_prediction(nnrt_Tensor *feature, nnrt_LinearLayer **linear_layers, int n
 
     nnrt_Tensor *fc3 = nnrt_linear_layer_forward(linear_layers[2], fc2);
 
-    size_t n = feature->shape[0];
     nnrt_Tensor *out = nnrt_argmax(fc3, 1);
 
     int label_idx = out->data[0];
