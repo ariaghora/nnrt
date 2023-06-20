@@ -28,11 +28,13 @@ nnrt_Tensor *nnrt_maxpool_2d(nnrt_Tensor *a, int kernel, int stride, int pad);
 void         nnrt_reshape_inplace(nnrt_Tensor *a, int *new_shape, int new_ndim);
 void         nnrt_transpose_inplace(nnrt_Tensor *a);
 
-//// Actiovation functions
+//// Activation functions
 void nnrt_relu(nnrt_Tensor *a, nnrt_Tensor *out);
 void nnrt_sigmoid(nnrt_Tensor *a, nnrt_Tensor *out);
-void nnrt_argmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out);
 void nnrt_softmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out);
+
+// Misc
+nnrt_Tensor *nnrt_argmax(nnrt_Tensor *a, int axis);
 
 //// Image processing functions
 //   - It is assumed that images are in 4-dimension, [N, H, W, C]

@@ -1,6 +1,7 @@
 #include "nnrt.h"
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -275,9 +276,16 @@ inline void nnrt_sigmoid(nnrt_Tensor *a, nnrt_Tensor *out) {
     }
 }
 
-inline void nnrt_argmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out) {
+inline nnrt_Tensor *nnrt_argmax(nnrt_Tensor *a, int axis) {
+    if (a->ndim != 2) {
+        printf("Argmax is only implemented for 2D tensors\n");
+        exit(1);
+    }
+
+    nnrt_Tensor *out = NULL;
     size_t m = a->shape[0], n = a->shape[1];
     if (axis == 0) {  // column-wise argmax
+        out =  nnrt_tensor_alloc(2, (int[]){n, 1});
         for (size_t j = 0; j < n; ++j) {
             NNRT_FLOAT max_val = a->data[j];
             size_t max_idx = 0;
@@ -290,6 +298,7 @@ inline void nnrt_argmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out) {
             out->data[j] = max_idx;
         }
     } else if (axis == 1) {  // row-wise argmax
+        out =  nnrt_tensor_alloc(2, (int[]){m, 1});
         for (size_t i = 0; i < m; ++i) {
             NNRT_FLOAT max_val = a->data[i * n];
             size_t max_idx = 0;
@@ -302,6 +311,7 @@ inline void nnrt_argmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out) {
             out->data[i] = max_idx;
         }
     }
+    return out;
 }
 
 inline void nnrt_softmax(nnrt_Tensor *a, int axis, nnrt_Tensor *out) {

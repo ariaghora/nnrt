@@ -5,13 +5,6 @@
 #include "../../nnrt.h"
 #include "../../nnrt_layers.h"
 
-#define DEBUG(label, t) (printf("%s: [%d, %d, %d, %d]\n", \
-                                label,                    \
-                                t->shape[0],              \
-                                t->shape[1],              \
-                                t->shape[2],              \
-                                t->shape[3]))
-
 #define IMG_SIZE 256
 #define N_CHANNELS 3
 
@@ -51,7 +44,8 @@ nnrt_Tensor *get_feature(nnrt_Tensor *image_batch, nnrt_Conv2DLayer **conv_layer
 
     // Flatten
     nnrt_reshape_inplace(h5_pool_adaptive,
-                         (int[]){h5_pool_adaptive->shape[0], h5_pool_adaptive->shape[1] * 6 * 6}, 2);
+                         (int[]){h5_pool_adaptive->shape[0], h5_pool_adaptive->shape[1] * 6 * 6},
+                         2);
 
     return h5_pool_adaptive;
 }
@@ -66,8 +60,7 @@ int get_prediction(nnrt_Tensor *feature, nnrt_LinearLayer **linear_layers, int n
     nnrt_Tensor *fc3 = nnrt_linear_layer_forward(linear_layers[2], fc2);
 
     size_t n = feature->shape[0];
-    nnrt_Tensor *out = nnrt_tensor_alloc(2, (int[]){n, 1});
-    nnrt_argmax(fc3, 1, out);
+    nnrt_Tensor *out = nnrt_argmax(fc3, 1);
 
     int label_idx = out->data[0];
 
@@ -106,7 +99,9 @@ int main(int argc, char **argv) {
         linear_layers[i] = nnrt_linear_layer_fread(fp);
     fclose(fp);
 
-#include "labels.inc"
+    // labels = [ ... ]
+    #include "labels.inc"
+
     // ======
     // nnrt_Tensor *img = load_image_alexnet(image_path);
     nnrt_Tensor *img = nnrt_image_load(image_path);
