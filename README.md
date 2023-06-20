@@ -2,6 +2,7 @@
 
 Load neural net weight trained in python (as NumPy array) in C, use it for inference.
 The runtime library is written in pure C.
+This library is **not designed for training** neural net models.
 
 ## Running examples
 

@@ -1,5 +1,3 @@
-#include "nnrt_layers.h"
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -37,7 +35,7 @@ nnrt_Tensor *nnrt_conv_transpose_2d_forward(nnrt_ConvTranspose2DLayer *l, nnrt_T
     return nnrt_conv_transpose_2d(x, l->w, l->b, l->stride, l->pad);
 }
 
-void nnrt_conv_transpose_2d_free(nnrt_Conv2DLayer *l) {
+void nnrt_conv_transpose_2d_free(nnrt_ConvTranspose2DLayer *l) {
     nnrt_tensor_free(l->w);
     nnrt_tensor_free(l->b);
     free(l);

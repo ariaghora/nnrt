@@ -3,7 +3,6 @@
 #include <time.h>
 
 #include "../../nnrt.h"
-#include "../../nnrt_layers.h"
 
 #define IMG_SIZE 256
 #define N_CHANNELS 3
