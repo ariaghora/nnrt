@@ -68,6 +68,7 @@ inline nnrt_Tensor *nnrt_affine(nnrt_Tensor *x, nnrt_Tensor *w, nnrt_Tensor *b) 
     }
 
     nnrt_Tensor *out = nnrt_matmul(x, w);
+
     for (size_t i = 0; i < x->shape[0]; ++i) {
         for (size_t j = 0; j < w->shape[1]; ++j) {
             out->data[i * w->shape[1] + j] += b->data[j];
@@ -498,7 +499,6 @@ nnrt_Tensor *nnrt_tensor_fread(FILE *fp) {
     fread(tensor->shape, sizeof(int), tensor->ndim, fp);
 
     size_t sz = nnrt_tensor_size(tensor);
-
     tensor->data = (NNRT_FLOAT *)malloc(sz * sizeof(NNRT_FLOAT));
     fread(tensor->data, sizeof(NNRT_FLOAT), sz, fp);
 
